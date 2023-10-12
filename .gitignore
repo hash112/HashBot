@@ -1,0 +1,7 @@
+# Ingnorar carpeta de cache
+
+*__pycache__
+
+# Ingnorar archivo keys
+
+*apikeys.py
