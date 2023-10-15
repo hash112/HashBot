@@ -1,30 +1,26 @@
-# Importar las librerias de discord
-import discord
-from discord.ext import commands
+# Importar las librerias de nextcord
+import nextcord
+from nextcord.ext import commands
+import os
 
 # Importar el token de un archivo por separado
 from apikeys import Token
 
-intents = discord.Intents.all()
+# Uso de json (Aun por implementar)
+import json
+
+intents = nextcord.Intents.all()
 client = commands.Bot(command_prefix = '$', intents=intents)
 
 @client.event
 async def on_ready():
-    print("Bot inicializado")
-    print("-------------------------")
+    print(f"Bot inicializado como {client.user}")
+    print("------------------------------------")
+    return
 
-@client.command()
-async def hola(ctx):
-    await ctx.send("Hola mundo")
-
-@client.event
-async def on_member_join(miembro):
-    canal = client.get_channel(1161591714193096715)
-    await canal.send(f"Bienvenido/a {miembro.mention} :)")
-
-@client.event
-async def on_member_remove(miembro):
-    canal = client.get_channel(1161591714193096715)
-    await canal.send(f"Adios {miembro.mention}")
+extensiones = [f"cogs.{filename[:-3]}" for filename in os.listdir('./cogs') if filename.endswith(".py")]
+if __name__ == '__main__':
+    for archivo in extensiones:
+        client.load_extension(archivo)
 
 client.run(Token())
