@@ -1,33 +1,34 @@
 import nextcord
 from nextcord.ext import commands
 
-from io import StringIO
+import io
 
 class Admin(commands.Cog):
     def __init__(self, client):
         self.client = client
     
     @commands.command()
+    @commands.has_permissions(administrator=True)
     async def borrar(self, ctx):
         mensaje = ctx.message.content.split()
-        if ctx.author.top_role == ctx.guild.roles[4]:
-            try:
-                cantidad_borrar = int(mensaje[1])
-                await ctx.channel.purge(limit=cantidad_borrar+1)
+        try:
+            cantidad_borrar = int(mensaje[1])
+            await ctx.channel.purge(limit=cantidad_borrar+1)
 
-            except:
-                await ctx.send("Ingresa un número despues del comando")
+        except:
+            await ctx.send("Ingresa un número despues del comando")
 
     @commands.command()
+    @commands.has_permissions(administrator=True)
     async def cmsg(self, ctx):
-        custom = StringIO()
+        custom = io.StringIO()
         mensaje = ctx.message.content.split()
-        if ctx.author.top_role == "Admin":
-            for i, msg in enumerate(mensaje):
-                if i > 0: custom.write(f"{msg} ")
+        for i, msg in enumerate(mensaje):
+            if i > 0: custom.write(f"{msg} ")
 
-            await ctx.channel.purge(limit=1)
-            await ctx.send(custom.getvalue())
+        await ctx.channel.purge(limit=1)
+        msg_final = custom.getvalue()
+        await ctx.send(msg_final)
 
     @commands.command()
     @commands.has_permissions(administrator=True)
