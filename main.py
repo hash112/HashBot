@@ -6,9 +6,6 @@ import os
 # Importar el token de un archivo por separado
 from apikeys import Token
 
-# Uso de json (Aun por implementar)
-import json
-
 intents = nextcord.Intents.all()
 client = commands.Bot(command_prefix = '$', intents=intents)
 
