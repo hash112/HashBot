@@ -1,6 +1,8 @@
-# Ingnorar carpeta de cache
+# Ingnorar carpetas
 
 *__pycache__
+*dashboard
+*local_games
 
 # Ingnorar archivo keys
 

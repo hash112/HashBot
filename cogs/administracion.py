@@ -1,18 +1,15 @@
 import nextcord
 from nextcord.ext import commands
 
-import io
-
 class Admin(commands.Cog):
     def __init__(self, client):
         self.client = client
     
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def borrar(self, ctx):
-        mensaje = ctx.message.content.split()
+    async def borrar(self, ctx, cantidad_borrar):
         try:
-            cantidad_borrar = int(mensaje[1])
+            cantidad_borrar = int(cantidad_borrar)
             await ctx.channel.purge(limit=cantidad_borrar+1)
 
         except:
@@ -20,15 +17,9 @@ class Admin(commands.Cog):
 
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def cmsg(self, ctx):
-        custom = io.StringIO()
-        mensaje = ctx.message.content.split()
-        for i, msg in enumerate(mensaje):
-            if i > 0: custom.write(f"{msg} ")
-
+    async def cmsg(self, ctx, *msg):
         await ctx.channel.purge(limit=1)
-        msg_final = custom.getvalue()
-        await ctx.send(msg_final)
+        await ctx.send(" ".join(msg))
 
     @commands.command()
     @commands.has_permissions(administrator=True)
