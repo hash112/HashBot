@@ -3,13 +3,9 @@ from nextcord.ext import commands
 
 import random # Para tener turnos aleatorios
 
-import psycopg2
+import psycopg2 # Libreria para usar postgres en python
 
 import api_secret as db
-
-
-
-isOver = True # Variable que nos indica si hay una partida en progreso
 
 def print_hash(p1_score, p2_score):
     board = ["⬜" for space in range(9)] # Crea un espacio en blanco
@@ -78,24 +74,19 @@ class TicTac(commands.Cog):
             await ctx.send(f"No te puedes retar a ti mismo")
             return
 
-        if p2 == self.client.user:
+        if p2 == self.client.user: # Me gustaría agregar una IA básica
             await ctx.send(f"No puedes retarme (aún)")
             return
         
         player1 = ctx.author
         player2 = p2
         turn = random.randint(0, 1)
-        if turn:
-            turn = player1.id
-
-        else:
-            turn = player2.id
-
-        score = [player1.id, player2.id, turn, [], [], ctx.guild.id]
+        if turn: turn = player1.id
+        else: turn = player2.id 
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM tictac where id_server = %s;", [ctx.guild.id])
+            cur.execute("SELECT * FROM tictac where id_server = %s;", [ctx.guild.id]) 
             isOver = cur.fetchone()
-            if isOver is None:
+            if isOver is None: # Busca una entrada en la base que coincida con el server, si no hay, no hay partida en curso
                 cur.execute("""INSERT INTO tictac 
                             (id_player1, 
                             id_player2, 
@@ -105,7 +96,7 @@ class TicTac(commands.Cog):
                             p2_score,
                             id_server) 
                             VALUES (%s, %s, 1, %s, %s, %s, %s);
-                            """, score)
+                            """, [player1.id, player2.id, turn, [], [], ctx.guild.id])
 
             else:
                 await ctx.send(f"Hay una partida en curso")
@@ -117,14 +108,12 @@ class TicTac(commands.Cog):
         conn.close()
         board = print_hash([], [])
         await ctx.send(f"{board[0]}{board[1]}{board[2]}\n{board[3]}{board[4]}{board[5]}\n{board[6]}{board[7]}{board[8]}")
-        m_turno = self.client.get_user(turn)
-        await ctx.send(f"Turno de {m_turno.mention}")
+        await ctx.send(f"Turno de <@{turn}>")
         return
          
     @commands.command()
-    async def place(self, ctx, pos):
-        try:
-            pos = int(pos)
+    async def place(self, ctx, pos): # Coloca una marca donde indique el usuario
+        try: pos = int(pos)
 
         except:
             await ctx.send(f"Por favor ingresa un número")
@@ -134,7 +123,7 @@ class TicTac(commands.Cog):
         with conn.cursor() as cur:
             cur.execute("SELECT id_player1, id_player2, n_turn, who_turn, p1_score, p2_score FROM tictac WHERE id_server = %s;", [ctx.guild.id])
             data = cur.fetchone()
-            if data is None:
+            if data is None: # Si no hay datos, no hay partida
                 await ctx.send(f"Debes iniciar un juego nuevo")
                 conn.close()
                 return
@@ -166,9 +155,8 @@ class TicTac(commands.Cog):
                     p1_score.sort()
                     p1_win = check_win(p1_score)
                     if p1_win:
-                        winner = self.client.get_user(player1)
                         board = print_hash(p1_score, p2_score)
-                        await ctx.send(f"Ganó {winner.mention}")
+                        await ctx.send(f"Ganó <@{player1}>")
                         cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
                         conn.commit()
                         conn.close()
@@ -177,8 +165,7 @@ class TicTac(commands.Cog):
                     p2_score.sort()
                     p2_win = check_win(p2_score)
                     if p2_win:
-                        winner = self.client.get_user(player2)
-                        await ctx.send(f"Ganó {winner.mention}")
+                        await ctx.send(f"Ganó <@{player2}>")
                         cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
                         conn.commit()
                         conn.close()
@@ -191,8 +178,7 @@ class TicTac(commands.Cog):
                     conn.close()
                     return
                 
-                player = self.client.get_user(turn)
-                await ctx.send(f"Turno de {player.mention}")
+                await ctx.send(f"Turno de <@{turn}>")
                 n_turn += 1
                 cur.execute("UPDATE tictac SET n_turn = %s, who_turn = %s, p1_score = %s, p2_score = %s WHERE id_server = %s;", [n_turn, turn, p1_score, p2_score, ctx.guild.id])
                 conn.commit()
@@ -207,21 +193,19 @@ class TicTac(commands.Cog):
     async def cancel(self, ctx): # Comando para cancelar un juego, solo aplica si es turno del que lo invoca
         conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
         with conn.cursor() as cur:
-            cur.execute("SELECT who_turn FROM tictac WHERE id_server = %s;", [ctx.guild.id])
+            cur.execute("SELECT id_player1, id_player2 FROM tictac WHERE id_server = %s;", [ctx.guild.id])
             turn = cur.fetchone()
             if turn is None:
                 await ctx.send(f"No hay partida en curso.")
                 conn.close()
                 return
         
-            if turn[0] == ctx.author.id:
+            if turn[0] == ctx.author.id or turn[1] == ctx.author.id:
                 cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
+                conn.commit()
                 await ctx.send(f"{ctx.author.mention} canceló la partida :(")
 
-            else:
-                await ctx.send(f"No tienes permiso de cancelar una partida.")
-
-            conn.commit()
+            else: await ctx.send(f"No tienes permiso de cancelar una partida.")
 
         conn.close()
 
