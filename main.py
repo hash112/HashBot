@@ -4,7 +4,7 @@ from nextcord.ext import commands
 import os
 
 # Importar el token de un archivo por separado
-from apikeys import Token
+from api_secret import BOTTOKEN
 
 intents = nextcord.Intents.all()
 client = commands.Bot(command_prefix = '$', intents=intents)
@@ -20,4 +20,4 @@ if __name__ == '__main__':
     for archivo in extensiones:
         client.load_extension(archivo)
 
-client.run(Token())
+client.run(BOTTOKEN)

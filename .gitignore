@@ -2,8 +2,13 @@
 
 *__pycache__
 *dashboard
-*local_games
+*tests
 
-# Ingnorar archivo keys
+# Ingnorar archivo de las keys
 
-*apikeys.py
+*api_secret.py
+
+# Ignorar archivos de entorno virtual
+
+*Pipfile
+*Pipfile.lock
