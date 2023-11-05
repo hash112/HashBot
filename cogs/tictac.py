@@ -190,7 +190,7 @@ class TicTac(commands.Cog):
                 return
 
     @commands.command()
-    async def cancel(self, ctx): # Comando para cancelar un juego, solo aplica si es turno del que lo invoca
+    async def cancel(self, ctx): # Comando para cancelar un juego, solo aplica si eres uno de los jugadores
         conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
         with conn.cursor() as cur:
             cur.execute("SELECT id_player1, id_player2 FROM tictac WHERE id_server = %s;", [ctx.guild.id])

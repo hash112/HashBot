@@ -38,13 +38,56 @@ class Admin(commands.Cog):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def setrolemsg(self, ctx, channel: nextcord.TextChannel, *msg):
+        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+        msg = await channel.send(f"{' '.join(msg)}")
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO role_msg (id_server, id_role_channel, id_role_msg) VALUES (%s, %s, %s);", [ctx.guild.id, channel.id, msg.id])
+            conn.commit()
+
+        conn.close()
         return
     
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def setrolereact(self, ctx, role: nextcord.Role, emoji):
-        print(role.id)
-        print(emoji)
+    async def setrolereact(self, ctx, role: nextcord.Role, emoji: nextcord.PartialEmoji, id_msg: int):    
+        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+        custom = emoji.is_custom_emoji()
+        if custom:
+            await ctx.send(f"No puedes utilizar emojis personalizados")
+            return
+        
+        with conn.cursor() as cur:
+            cur.execute("SELECT id_role_msg, id_role_channel FROM role_msg WHERE id_server = %s;", [ctx.guild.id])
+            arr_msg = cur.fetchall()
+            if not arr_msg:
+                await ctx.send(f"No hay mensaje con ese id.")
+                conn.close()
+                return
+            
+            for i, id_fetch in enumerate(arr_msg):
+                if id_msg in id_fetch:
+                    cur.execute("SELECT emoji FROM roles WHERE id_role_msg = %s AND id_role = %s;", [id_msg, role.id])
+                    emojifetch = cur.fetchone()
+                    if emojifetch is None:
+                        channel = await ctx.guild.fetch_channel(id_fetch[1])
+                        msg = await channel.fetch_message(id_msg)
+                        cur.execute("INSERT INTO roles (id_role_msg, id_role, emoji) VALUES (%s, %s, %s);", [id_msg, role.id, emoji.name])
+
+                    else:
+                        channel = await ctx.guild.fetch_channel(id_fetch[1])
+                        msg = await channel.fetch_message(id_fetch[0])
+                        await msg.remove_reaction(emojifetch[0], self.client.user)
+                        cur.execute("UPDATE roles SET emoji = %s WHERE id_role_msg = %s AND id_role = %s;", [emoji.name, id_msg, role.id])
+
+                    conn.commit()
+                    await msg.add_reaction(emoji)
+
+                else:
+                    await ctx.send(f"No hay mensaje con ese id.")
+                    conn.close()
+                    return
+
+        conn.close()
         return
 
     @commands.command()
@@ -69,17 +112,10 @@ class Admin(commands.Cog):
         await ctx.send(" ".join(msg))
 
     @commands.command()
-    @commands.has_permissions(administrator=True)
-    async def react(self, ctx):
-        mensaje_comando = ctx.message.content.split()
-        try:
-            await ctx.channel.purge(limit=1)
-            id_msg = int(mensaje_comando[1])
-            message = await ctx.fetch_message(id_msg)
-            await message.add_reaction(mensaje_comando[2])
-
-        except:
-            await ctx.send("Ingresa el ID del mensaje a reaccionar y el emoji")
+    async def emojid(self, ctx, emoji: nextcord.PartialEmoji):
+        print(emoji)
+        print(emoji.name)
+        print(emoji.id)
 
     
 def setup(client):
