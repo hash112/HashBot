@@ -111,12 +111,5 @@ class Admin(commands.Cog):
         await ctx.channel.purge(limit=1)
         await ctx.send(" ".join(msg))
 
-    @commands.command()
-    async def emojid(self, ctx, emoji: nextcord.PartialEmoji):
-        print(emoji)
-        print(emoji.name)
-        print(emoji.id)
-
-    
 def setup(client):
     client.add_cog(Admin(client))
