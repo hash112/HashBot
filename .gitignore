@@ -2,14 +2,10 @@
 
 *__pycache__
 *tests
-*web
+
 # Ingnorar archivo de las keys
 
 *api_secret.py
-
-# Ignorar django manage
-
-*manage.py
 
 # Ignorar archivos de entorno virtual
 
