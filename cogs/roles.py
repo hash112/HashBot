@@ -1,7 +1,10 @@
 import nextcord
 from nextcord.ext import commands
-import api_secret as db
+
 import psycopg2
+from dotenv import dotenv_values
+
+token = dotenv_values('.env.secret')
 
 class Roles(commands.Cog):
     def __init__(self, client):
@@ -9,14 +12,17 @@ class Roles(commands.Cog):
     
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+        conn = psycopg2.connect("Credentials")
         with conn.cursor() as cur:
+
+            # Busca el emoji con el rol en relacion con el mensaje
             cur.execute("SELECT id_role, emoji FROM roles WHERE id_role_msg = %s;", [payload.message_id])
             data = cur.fetchone()
             if data is None:
                 conn.close()
                 return
             
+            # Asigna el rol en caso de no tenerlo
             id_role, emoji = data
             if emoji == payload.emoji.name:
                 role = payload.member.guild.get_role(id_role)

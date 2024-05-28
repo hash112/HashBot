@@ -2,10 +2,12 @@ import nextcord
 from nextcord.ext import commands
 
 import random # Para tener turnos aleatorios
+import math
 
-import psycopg2 # Libreria para usar postgres en python
+import psycopg2 
+from dotenv import dotenv_values
 
-import api_secret as db
+token = dotenv_values('.env.secret')
 
 def print_hash(p1_score, p2_score):
     board = ["⬜" for space in range(9)] # Crea un espacio en blanco
@@ -69,7 +71,7 @@ class TicTac(commands.Cog):
 
     @commands.command()
     async def tictac(self, ctx, p2: nextcord.Member): # Genera un nuevo juego
-        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+        conn = psycopg2.connect("Credentials")
         if p2 == ctx.author:
             await ctx.send(f"No te puedes retar a ti mismo")
             return
@@ -80,11 +82,12 @@ class TicTac(commands.Cog):
         
         player1 = ctx.author
         player2 = p2
+        juego = math.floor((ctx.author.id * p2.id) / ctx.guild.id)
         turn = random.randint(0, 1)
         if turn: turn = player1.id
         else: turn = player2.id 
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM tictac where id_server = %s;", [ctx.guild.id]) 
+            cur.execute("SELECT * FROM tictac where id_game = %s;", [juego]) 
             isOver = cur.fetchone()
             if isOver is None: # Busca una entrada en la base que coincida con el server, si no hay, no hay partida en curso
                 cur.execute("""INSERT INTO tictac 
@@ -94,9 +97,9 @@ class TicTac(commands.Cog):
                             who_turn,
                             p1_score,
                             p2_score,
-                            id_server) 
+                            id_game) 
                             VALUES (%s, %s, 1, %s, %s, %s, %s);
-                            """, [player1.id, player2.id, turn, [], [], ctx.guild.id])
+                            """, [player1.id, player2.id, turn, [], [], juego])
 
             else:
                 await ctx.send(f"Hay una partida en curso")
@@ -110,18 +113,13 @@ class TicTac(commands.Cog):
         await ctx.send(f"{board[0]}{board[1]}{board[2]}\n{board[3]}{board[4]}{board[5]}\n{board[6]}{board[7]}{board[8]}")
         await ctx.send(f"Turno de <@{turn}>")
         return
-         
+
     @commands.command()
-    async def place(self, ctx, pos): # Coloca una marca donde indique el usuario
-        try: pos = int(pos)
-
-        except:
-            await ctx.send(f"Por favor ingresa un número")
-            return
-
-        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+    async def place(self, ctx, pos: int, p2: nextcord.Member): # Coloca una marca donde indique el usuario
+        juego = math.floor((ctx.author.id * p2.id) / ctx.guild.id)
+        conn = psycopg2.connect("Credentials")
         with conn.cursor() as cur:
-            cur.execute("SELECT id_player1, id_player2, n_turn, who_turn, p1_score, p2_score FROM tictac WHERE id_server = %s;", [ctx.guild.id])
+            cur.execute("SELECT id_player1, id_player2, n_turn, who_turn, p1_score, p2_score FROM tictac WHERE id_game = %s;", [juego])
             data = cur.fetchone()
             if data is None: # Si no hay datos, no hay partida
                 await ctx.send(f"Debes iniciar un juego nuevo")
@@ -157,7 +155,7 @@ class TicTac(commands.Cog):
                     if p1_win:
                         board = print_hash(p1_score, p2_score)
                         await ctx.send(f"Ganó <@{player1}>")
-                        cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
+                        cur.execute("DELETE FROM tictac WHERE id_game = %s", [juego])
                         conn.commit()
                         conn.close()
                         return 
@@ -166,7 +164,7 @@ class TicTac(commands.Cog):
                     p2_win = check_win(p2_score)
                     if p2_win:
                         await ctx.send(f"Ganó <@{player2}>")
-                        cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
+                        cur.execute("DELETE FROM tictac WHERE id_game = %s", [juego])
                         conn.commit()
                         conn.close()
                         return 
@@ -174,13 +172,14 @@ class TicTac(commands.Cog):
                 if n_turn == 9: # Si nadie gana
                     board = print_hash(p1_score, p2_score)
                     await ctx.send(f"Nadie ganó jaja")
-                    cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
+                    cur.execute("DELETE FROM tictac WHERE id_game = %s", [juego])
                     conn.close()
                     return
                 
                 await ctx.send(f"Turno de <@{turn}>")
                 n_turn += 1
-                cur.execute("UPDATE tictac SET n_turn = %s, who_turn = %s, p1_score = %s, p2_score = %s WHERE id_server = %s;", [n_turn, turn, p1_score, p2_score, ctx.guild.id])
+                cur.execute("UPDATE tictac SET n_turn = %s, who_turn = %s, p1_score = %s, p2_score = %s WHERE id_game = %s;", 
+                            [n_turn, turn, p1_score, p2_score, juego])
                 conn.commit()
                 conn.close()
                 return
@@ -190,10 +189,11 @@ class TicTac(commands.Cog):
                 return
 
     @commands.command()
-    async def cancel(self, ctx): # Comando para cancelar un juego, solo aplica si eres uno de los jugadores
-        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+    async def cancel(self, ctx, p2: nextcord.Member): # Comando para cancelar un juego, solo aplica si eres uno de los jugadores
+        conn = psycopg2.connect("Credentials")
+        juego = math.floor((ctx.author.id * p2.id) / ctx.guild.id)
         with conn.cursor() as cur:
-            cur.execute("SELECT id_player1, id_player2 FROM tictac WHERE id_server = %s;", [ctx.guild.id])
+            cur.execute("SELECT id_player1, id_player2 FROM tictac WHERE id_game = %s;", [juego])
             turn = cur.fetchone()
             if turn is None:
                 await ctx.send(f"No hay partida en curso.")
@@ -201,13 +201,44 @@ class TicTac(commands.Cog):
                 return
         
             if turn[0] == ctx.author.id or turn[1] == ctx.author.id:
-                cur.execute("DELETE FROM tictac WHERE id_server = %s", [ctx.guild.id])
+                cur.execute("DELETE FROM tictac WHERE id_game = %s", [juego])
                 conn.commit()
                 await ctx.send(f"{ctx.author.mention} canceló la partida :(")
 
             else: await ctx.send(f"No tienes permiso de cancelar una partida.")
 
         conn.close()
+
+    @commands.command()
+    async def phash(self, ctx, p2: nextcord.Member): # Reimprime el tablero en caso de haberse perdido
+        con = psycopg2.connect("Credentials")
+        juego = math.floor((ctx.author.id * p2.id) / ctx.guild.id)
+        with con.cursor() as cur:
+            data = cur.execute("SELECT p1_score, p2_score, turn, FROM tictac WHERE id_game = %s", [juego])
+            if data is None: # Si no hay datos, no hay partida
+                await ctx.send("No hay partida en curso");
+                con.close();
+                return
+
+            p1_score, p2_score, turno = data
+            board = print_hash(p1_score, p2_score)
+            con.close();
+            await ctx.send(f"{board[0]}{board[1]}{board[2]}\n{board[3]}{board[4]}{board[5]}\n{board[6]}{board[7]}{board[8]}")
+            await ctx.send(f"Turno de <@{turno}>")
+            return
+
+    @tictac.error
+    @place.error
+    @cancel.error
+    @phash.error
+    async def bad_arguments(self, ctx, error):
+        if(isinstance(error, commands.BadArgument)):
+            await ctx.send("Argumentos inválidos")
+        
+        elif(isinstance(error, ValueError)):
+            await ctx.send("Argumentos inválidos")
+        
+        return 1
 
 def setup(client):
     client.add_cog(TicTac(client))

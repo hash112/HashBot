@@ -1,13 +1,9 @@
 # Ingnorar carpetas
 
 *__pycache__
-*tests
+*.venv
+*test
 
 # Ingnorar archivo de las keys
 
-*api_secret.py
-
-# Ignorar archivos de entorno virtual
-
-*Pipfile
-*Pipfile.lock
+*.env.secret

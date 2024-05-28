@@ -1,6 +1,0 @@
-BOTTOKEN = 'TOKEN'
-NAME = 'DATABASE'
-USER = 'USER'
-PASSWORD = 'PASSWORD'
-HOST = 'HOST'
-PORT = 'PORT' # Debe ser un entero

@@ -2,8 +2,9 @@ import nextcord
 from nextcord.ext import commands
 
 import psycopg2
+from dotenv import dotenv_values
 
-import api_secret as db
+token = dotenv_values('.env.secret')
 
 def getMessage(msg, member_id): # Esta función sirve para buscar menciones personalizadas dentro del mensaje.
     custom_mention = False
@@ -28,7 +29,7 @@ class Saludos(commands.Cog):
 
     @commands.Cog.listener() 
     async def on_member_join(self, member): # Mensaje cuando alguien se une al server (si hay)
-        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+        conn = psycopg2.connect("Credentials")
         with conn.cursor() as cur:
             cur.execute("SELECT id_welcome_chnnl, msg_welcome FROM greeting WHERE id_server = %s;", [member.guild.id])
             msg = cur.fetchone()
@@ -47,7 +48,7 @@ class Saludos(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member): # Mensaje cuando alguien se va de server (si hay)
-        conn = psycopg2.connect(host=db.HOST, dbname=db.NAME, user=db.USER, password=db.PASSWORD, port=db.PORT)
+        conn = psycopg2.connect("Credentials")
         with conn.cursor() as cur:
             cur.execute("SELECT id_farewell_chnnl, msg_farewell FROM greeting WHERE id_server = %s;", [member.guild.id])
             msg = cur.fetchone()

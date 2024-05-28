@@ -3,13 +3,13 @@ import nextcord
 from nextcord.ext import commands
 import os
 
-# Importar el token de un archivo por separado
-from api_secret import BOTTOKEN
-
+from dotenv import dotenv_values
 import datetime
 
 intents = nextcord.Intents.all()
 client = commands.Bot(command_prefix = '$', intents=intents)
+
+token = dotenv_values('.env.secret')
 
 @client.event
 async def on_ready():
@@ -22,4 +22,4 @@ if __name__ == '__main__':
     for archivo in extensiones:
         client.load_extension(archivo)
 
-client.run(BOTTOKEN)
+client.run(token['TOKEN'])
