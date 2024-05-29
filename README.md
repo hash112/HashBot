@@ -30,8 +30,4 @@ pip install -r requirements.txt
 ```
 Después modificar los archivos .env que necesites con tus credenciales y las conexiónes y nombres de las tablas que utilizes.
 
-<<<<<<< HEAD
 ![lmao](https://github.com/hash112/HashBot/assets/98150931/d35ea2da-e97b-46e8-9372-aaedb97b6457)
-=======
-![lmao](https://github.com/hash112/HashBot/assets/98150931/d35ea2da-e97b-46e8-9372-aaedb97b6457)
->>>>>>> refs/remotes/origin/main
