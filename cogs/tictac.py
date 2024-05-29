@@ -97,9 +97,10 @@ class TicTac(commands.Cog):
                             who_turn,
                             p1_score,
                             p2_score,
+                            id_server,
                             id_game) 
-                            VALUES (%s, %s, 1, %s, %s, %s, %s);
-                            """, [player1.id, player2.id, turn, [], [], juego])
+                            VALUES (%s, %s, 1, %s, %s, %s, %s, %s);
+                            """, [player1.id, player2.id, turn, [], [], ctx.guild.id, juego])
 
             else:
                 await ctx.send(f"Hay una partida en curso")
@@ -214,7 +215,8 @@ class TicTac(commands.Cog):
         con = psycopg2.connect("Credentials")
         juego = math.floor((ctx.author.id * p2.id) / ctx.guild.id)
         with con.cursor() as cur:
-            data = cur.execute("SELECT p1_score, p2_score, turn, FROM tictac WHERE id_game = %s", [juego])
+            cur.execute("SELECT p1_score, p2_score, turn, FROM tictac WHERE id_game = %s", [juego])
+            data = cur.fetchone()
             if data is None: # Si no hay datos, no hay partida
                 await ctx.send("No hay partida en curso");
                 con.close();

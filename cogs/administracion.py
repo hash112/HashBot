@@ -21,10 +21,12 @@ class Admin(commands.Cog):
             cur.execute("SELECT id_server FROM greeting WHERE id_server = %s;", [ctx.guild.id])
             if cur.fetchone() is None: 
                 cur.execute("INSERT INTO greeting (id_server, id_welcome_chnnl, msg_welcome) VALUES(%s, %s, %s);", [ctx.guild.id, channel.id, msg])
+                await ctx.send(f"Se ha creado el mensaje de bienvenida del canal <#{channel.id}>")
             
             # O lo actualiza si ya existe uno
             else: 
                 cur.execute("UPDATE greeting SET id_welcome_chnnl = %s, msg_welcome = %s WHERE id_server = %s;", [channel.id, msg, ctx.guild.id])
+                await ctx.send(f"Se ha cambiado el mensaje de bienvenida del canal <#{channel.id}>")
 
             conn.commit()
 
@@ -42,9 +44,11 @@ class Admin(commands.Cog):
             cur.execute("SELECT id_server FROM greeting WHERE id_server = %s;", [ctx.guild.id])
             if cur.fetchone() is None: 
                 cur.execute("INSERT INTO greeting (id_server, id_farewell_chnnl, msg_farewell) VALUES(%s, %s, %s);", [ctx.guild.id, channel.id, msg])
+                await ctx.send(f"Se ha creado el mensaje de despedida del canal <#{channel.id}>")
 
             else: 
                 cur.execute("UPDATE greeting SET id_farewell_chnnl = %s, msg_farewell = %s WHERE id_server = %s;", [channel.id, msg, ctx.guild.id])
+                await ctx.send(f"Se ha cambiado el mensaje de despedida del canal <#{channel.id}>")
 
             conn.commit()
 
@@ -61,6 +65,7 @@ class Admin(commands.Cog):
             # Permite crear varios mensajes de roles
             cur.execute("INSERT INTO role_msg (id_server, id_role_channel, id_role_msg) VALUES (%s, %s, %s);", [ctx.guild.id, channel.id, msg.id])
             conn.commit()
+            await ctx.send(f"Se ha agregado un nuevo mensaje a <#{channel.id}>")
 
         conn.close()
         return
@@ -92,25 +97,24 @@ class Admin(commands.Cog):
                     cur.execute("SELECT emoji FROM roles WHERE id_role_msg = %s AND id_role = %s;", [id_msg, role.id])
 
                     #en el array [0] es el canal, [1] es el mensaje
+                    id_channel = id_fetch[0]
+                    id_msg_fetch = id_fetch[1]
                     emojifetch = cur.fetchone()
                     if emojifetch is None:
-                        channel = await ctx.guild.fetch_channel(id_fetch[1])
+                        channel = await ctx.guild.fetch_channel(id_msg_fetch)
                         msg = await channel.fetch_message(id_msg)
                         cur.execute("INSERT INTO roles (id_role_msg, id_role, emoji) VALUES (%s, %s, %s);", [id_msg, role.id, emoji.name])
+                        await ctx.send(f"Se ha agregado {emoji.name} para el rol <@{role.name}> en el mensaje del canal <#{id_channel}>")
 
                     else:
-                        channel = await ctx.guild.fetch_channel(id_fetch[1])
-                        msg = await channel.fetch_message(id_fetch[0])
-                        await msg.remove_reaction(emojifetch[0], self.client.user)
+                        channel = await ctx.guild.fetch_channel(id_channel)
+                        msg = await channel.fetch_message(id_msg_fetch)
+                        await msg.remove_reaction(*emojifetch, self.client.user)
                         cur.execute("UPDATE roles SET emoji = %s WHERE id_role_msg = %s AND id_role = %s;", [emoji.name, id_msg, role.id])
+                        await ctx.send(f"Se ha actualizado {emoji.name} para el rol {role.name} en el mensaje del canal <#{id_channel}>")
 
                     conn.commit()
                     await msg.add_reaction(emoji)
-
-                else:
-                    await ctx.send(f"No hay mensaje con ese id.")
-                    conn.close()
-                    return
 
         conn.close()
         return
